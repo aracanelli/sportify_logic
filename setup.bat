@@ -2,7 +2,7 @@
 set /p project_name=Enter the name of your project: 
 
 echo Creating virtual environment...
-python -m venv venv
+python -m venv .venv
 
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
