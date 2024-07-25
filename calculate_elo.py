@@ -67,3 +67,9 @@ class Player:
         self.sub = sub
         self.wins = 0
         self.losses = 0
+
+    def get_win_rate(self):
+        if self.wins + self.losses != 0:
+            win_rate = round((self.wins/(self.wins + self.losses))*100,1)
+            return str(win_rate) + "%"
+        else: return str(0) + "%"

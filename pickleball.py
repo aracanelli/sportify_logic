@@ -48,9 +48,9 @@ def print_ranks(printed_players, full_time=True):
     for rank, player in enumerate(printed_players, start=1):
         if full_time:
             if player.sub == False:
-                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}")
+                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Win Rate: {player.get_win_rate()}")
         else:
-            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}")
+            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Win Rate: {player.get_win_rate()}")
     print(f"")
 
 
