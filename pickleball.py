@@ -48,9 +48,9 @@ def print_ranks(printed_players, full_time=True):
     for rank, player in enumerate(printed_players, start=1):
         if full_time:
             if player.sub == False:
-                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Win Rate: {player.get_win_rate()}")
+                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
         else:
-            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Win Rate: {player.get_win_rate()}")
+            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
     print(f"")
 
 
@@ -238,6 +238,17 @@ def find_unique_matches(random_matches):
                     return selected_matches, selected_players
 
 
+def valid_generated_matches_teammate_dif(generated_matches,  elo_dif):
+    valid_matches = []
+    for match in generated_matches:
+        team_elo1 = abs(match[0][0].elo - match[0][1].elo) / max(match[0][0].elo, match[0][1].elo)
+        team_elo2 = abs(match[1][0].elo - match[1][1].elo) / max(match[1][0].elo, match[1][1].elo)
+
+        if team_elo1 <= elo_dif and team_elo2 <= elo_dif:
+            valid_matches.append(match)
+
+    return valid_matches
+
 def valid_generated_matches(generated_matches,  elo_dif):
     valid_matches = []
     for match in generated_matches:
@@ -313,32 +324,32 @@ if __name__ == "__main__":
     print_ranks(sorted_players, False)
 
     player_list = [
-        "Anthony",
+        "Jana",
         "Matt",
         "James",
         "Steve",
-        "Felix",
-        "Falcone",
-        "Fred",
-        "Mass",
-        "Samantha",
-        "Cha-Nel",
+        "Vick",
+        "Lauren",
+        "Scarfo",
+        "Jenna",
+        "Matt S",
+        "Anthony",
         "Erica",
         "Baller",
         "Sam",
         "Taurasi",
         "Sandra",
-        "James C"
+        "Sarah"
     ]
 
     sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
     pairs = list(combinations(sorted_playing_players, 2))
     matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
     previous_games = get_previous_games(games[-20:])
-    filtered_matchup = remove_matchups(matches, previous_games)
+    filtered_matchup = remove_matchups(matches, [previous_games])
 
-    num_elo_split_games = 2
-    num_elo_based_games = 3
+    num_elo_split_games = 3
+    num_elo_based_games = 2
     elo_dif = 0.1
 
     elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games)
@@ -353,6 +364,7 @@ if __name__ == "__main__":
 
     new_filtered_matchup = remove_matchups(filtered_matchup, elo_split_games)
     new_filtered_matchup = valid_generated_matches(new_filtered_matchup, elo_dif)
+    #new_filtered_matchup = valid_generated_matches_teammate_dif(new_filtered_matchup, 0.2)
 
     elo_based_players = []
 
