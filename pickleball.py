@@ -348,8 +348,8 @@ if __name__ == "__main__":
     previous_games = get_previous_games(games[-20:])
     filtered_matchup = remove_matchups(matches, [previous_games])
 
-    num_elo_split_games = 3
-    num_elo_based_games = 2
+    num_elo_split_games = 2
+    num_elo_based_games = 3
     elo_dif = 0.1
 
     elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games)
