@@ -18,7 +18,7 @@ def print_game_schedule(game_title, game_players):
     print()
 
 
-def play_games():
+def play_games(games, players):
     for game in games:
         match = Games()
         player1 = players[game[0]]
@@ -191,15 +191,16 @@ def validate_elo_based_games(game_matchups, prev_opponents, old_filtered_matchup
 
     return new_filtered_matchups, elo_based_opponents
 
-def generate_elo_split_games(num_of_games):
+def generate_elo_split_games(num_of_games, sorted_playing_players):
     game_matchups = []
     player_order = []
     elo_split_opponents = []
     games_not_found = True
     while games_not_found:
         game_matchups = []
+        elo_split_opponents = []
         player_order = []
-        for _ in range(1, num_of_games + 1):
+        for _ in range(0, num_of_games):
             elo_line = int(len(sorted_playing_players) / 2)
             high_elo = sorted_playing_players[:elo_line]
             low_elo = sorted_playing_players[elo_line:]
@@ -307,7 +308,7 @@ def create_game_csv(players_list, num_games, num_courts, filename="games.csv"):
             writer.writerow(["", ""])  # Empty row for spacing
 
 
-if __name__ == "__main__":
+def get_ranks():
     group_id = database_fetch.get_group_id("Boyz Pickleball")
     player_ids = database_fetch.fetch_players(group_id)
     games = database_fetch.fetch_history(group_id)
@@ -315,7 +316,7 @@ if __name__ == "__main__":
     players = {player_id: Player(player_id, player_name, sub) for player_id, player_name, sub in player_ids}
     name_to_player = {player.name: player for player in players.values()}
 
-    play_games()
+    play_games(games, players)
 
     sorted_players = sorted(players.values(), key=lambda player: player.elo, reverse=True)
     sorted_ft_players = sorted([player for player in players.values() if not player.sub], key=lambda x: x.elo, reverse=True)
@@ -323,25 +324,9 @@ if __name__ == "__main__":
     print_ranks(sorted_ft_players)
     print_ranks(sorted_players, False)
 
-    player_list = [
-        "Jana",
-        "Matt",
-        "James",
-        "Steve",
-        "Vick",
-        "Lauren",
-        "Scarfo",
-        "Jenna",
-        "Matt S",
-        "Anthony",
-        "Erica",
-        "Baller",
-        "Sam",
-        "Taurasi",
-        "Sandra",
-        "Sarah"
-    ]
+    return games, name_to_player, sorted_players
 
+def generate_all_games(player_list, games, name_to_player, sorted_players):
     sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
     pairs = list(combinations(sorted_playing_players, 2))
     matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
@@ -352,7 +337,7 @@ if __name__ == "__main__":
     num_elo_based_games = 3
     elo_dif = 0.1
 
-    elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games)
+    elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games, sorted_playing_players)
 
     game_players = [player.name for player in elo_split_players]
 
@@ -386,4 +371,30 @@ if __name__ == "__main__":
         print_game_schedule(f"Game {i + num_elo_split_games}", current_game_players)
 
     create_game_csv(game_players, 5, 4)
+
+
+if __name__ == "__main__":
+    
+    games, name_to_player, sorted_players = get_ranks()
+
+    player_list = [
+        "Matt",
+        "James C",
+        "Marilou",
+        "Falcone",
+        "Vick",
+        "Szymbo",
+        "Chris",
+        "Jenna",
+        "Dims",
+        "Anthony",
+        "Erica",
+        "Baller",
+        "Sam",
+        "Taurasi",
+        "Felix",
+        "Cha-Nel"
+    ]
+
+    #generate_all_games(player_list, games, name_to_player, sorted_players)
 
