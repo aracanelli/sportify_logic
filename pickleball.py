@@ -12,7 +12,9 @@ def print_game_schedule(game_title, game_players):
             f"Court {court_number:02}: {player1.name} and {player2.name} ({team1_avg_elo}) vs {player3.name} and {player4.name} ({team2_avg_elo})")
 
     print(game_title)
-    for i, court_number in enumerate(range(9, 13)):
+    num_players = len(game_players)
+    num_courts = int(num_players / 4)
+    for i, court_number in enumerate(range(1, num_courts+1)):
         players = game_players[i * 4:(i + 1) * 4]
         print_court(court_number, *players)
     print()
@@ -102,7 +104,7 @@ def remove_matchups(all_matches, matches_to_remove, remove_opponents=False):
     return [match for match in all_matches if not should_remove(match, matches_to_remove, remove_opponents)]
 
 
-def get_previous_games(games_to_load):
+def get_previous_games(games_to_load, sorted_players):
     player_dict = {player.id: player for player in sorted_players}
     temp_player_list = []
 
@@ -192,6 +194,7 @@ def validate_elo_based_games(game_matchups, prev_opponents, old_filtered_matchup
     return new_filtered_matchups, elo_based_opponents
 
 def generate_elo_split_games(num_of_games, sorted_playing_players):
+    num_players = len(sorted_playing_players)
     game_matchups = []
     player_order = []
     elo_split_opponents = []
@@ -201,28 +204,39 @@ def generate_elo_split_games(num_of_games, sorted_playing_players):
         elo_split_opponents = []
         player_order = []
         for _ in range(0, num_of_games):
-            elo_line = int(len(sorted_playing_players) / 2)
+            games_generated = []
+            if (num_players / 4) % 2 == 0:
+                elo_line = int(num_players / 2)
+            else:
+                elo_line = int(num_players / 2) - 2
             high_elo = sorted_playing_players[:elo_line]
             low_elo = sorted_playing_players[elo_line:]
             random.shuffle(high_elo)
             random.shuffle(low_elo)
+
+            for i in range(0, len(high_elo), 4):
+                player_order.extend([high_elo[i], high_elo[i+1], high_elo[i+2], high_elo[i+3]])
+                games_generated = games_generated + [[(high_elo[i].id, high_elo[i+1].id), (high_elo[i+2].id, high_elo[i+3].id)]]
+            for i in range(0, len(low_elo), 4):
+                player_order.extend([low_elo[i], low_elo[i+1], low_elo[i+2], low_elo[i+3]])
+                games_generated = games_generated + [[(low_elo[i].id, low_elo[i+1].id), (low_elo[i+2].id, low_elo[i+3].id)]]
 
             game1 = [[(high_elo[0].id, high_elo[1].id), (high_elo[2].id, high_elo[3].id)]]
             game2 = [[(high_elo[4].id, high_elo[5].id), (high_elo[6].id, high_elo[7].id)]]
             game3 = [[(low_elo[0].id, low_elo[1].id), (low_elo[2].id, low_elo[3].id)]]
             game4 = [[(low_elo[4].id, low_elo[5].id), (low_elo[6].id, low_elo[7].id)]]
 
-            game_matchups = game_matchups + game1 + game2 + game3 + game4
+            game_matchups = game_matchups + games_generated
 
-            player_order.extend(
-                [high_elo[0], high_elo[1], high_elo[2], high_elo[3], high_elo[4], high_elo[5], high_elo[6], high_elo[7],
-                 low_elo[0], low_elo[1], low_elo[2], low_elo[3], low_elo[4], low_elo[5], low_elo[6], low_elo[7]])
+            #player_order.extend(
+            #    [high_elo[0], high_elo[1], high_elo[2], high_elo[3], high_elo[4], high_elo[5], high_elo[6], high_elo[7],
+            #     low_elo[0], low_elo[1], low_elo[2], low_elo[3], low_elo[4], low_elo[5], low_elo[6], low_elo[7]])
 
         games_not_found, elo_split_opponents = validate_elo_split_games(game_matchups)
     return game_matchups, player_order, elo_split_opponents
 
 
-def find_unique_matches(random_matches):
+def find_unique_matches(random_matches, num_matches):
     while True:
         random.shuffle(random_matches)
         selected_matches = []
@@ -235,7 +249,7 @@ def find_unique_matches(random_matches):
                 selected_matches.append(match)
                 selected_players.extend([match[0][0], match[0][1], match[1][0], match[1][1]])
                 used_players.update(players_in_match)
-                if len(selected_matches) == 4:
+                if len(selected_matches) == num_matches:
                     return selected_matches, selected_players
 
 
@@ -327,10 +341,14 @@ def get_ranks():
     return games, name_to_player, sorted_players
 
 def generate_all_games(player_list, games, name_to_player, sorted_players):
+
+    num_players = len(player_list)
+    num_matches = num_players / 4
+
     sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
     pairs = list(combinations(sorted_playing_players, 2))
     matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
-    previous_games = get_previous_games(games[-20:])
+    previous_games = get_previous_games(games[-20:], sorted_players)
     filtered_matchup = remove_matchups(matches, [previous_games])
 
     num_elo_split_games = 2
@@ -342,8 +360,8 @@ def generate_all_games(player_list, games, name_to_player, sorted_players):
     game_players = [player.name for player in elo_split_players]
 
     for i in range(1, num_elo_split_games + 1):
-        start_index = (i - 1) * 16
-        end_index = i * 16
+        start_index = (i - 1) * num_players
+        end_index = i * num_players
         current_game_players = elo_split_players[start_index:end_index]
         print_game_schedule(f"Game {i}", current_game_players)
 
@@ -355,7 +373,7 @@ def generate_all_games(player_list, games, name_to_player, sorted_players):
 
     for _ in range(1, num_elo_based_games + 1):
         random.shuffle(new_filtered_matchup)
-        result_matches, result_players = find_unique_matches(new_filtered_matchup)
+        result_matches, result_players = find_unique_matches(new_filtered_matchup, num_matches)
         game_players = game_players + [player.name for player in result_players]
         result_ids = [[(team[0].id, team[1].id) for team in match] for match in result_matches]
         new_filtered_matchup = remove_matchups(new_filtered_matchup, result_ids)
@@ -365,12 +383,12 @@ def generate_all_games(player_list, games, name_to_player, sorted_players):
         new_filtered_matchup, opponents = validate_elo_based_games(result_matches, opponents, new_filtered_matchup)
 
     for i in range(1, num_elo_based_games + 1):
-        start_index = (i - 1) * 16
-        end_index = i * 16
+        start_index = (i - 1) * num_players
+        end_index = i * num_players
         current_game_players = elo_based_players[start_index:end_index]
         print_game_schedule(f"Game {i + num_elo_split_games}", current_game_players)
 
-    create_game_csv(game_players, 5, 4)
+    create_game_csv(game_players, 5, 5)
 
 
 if __name__ == "__main__":
@@ -396,5 +414,5 @@ if __name__ == "__main__":
         "Cha-Nel"
     ]
 
-    #generate_all_games(player_list, games, name_to_player, sorted_players)
+    generate_all_games(player_list, games, name_to_player, sorted_players)
 
