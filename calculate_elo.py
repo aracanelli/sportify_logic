@@ -16,7 +16,7 @@ class Games:
 
         self.winner_team_index = 0
 
-    def set_team(self,  player1, player2, player3, player4):
+    def set_team(self, player1, player2, player3, player4, score1, score2):
         self.team1 = [player1, player2]
         self.team1_elo = (player1.elo + player2.elo) / 2
         self.team2 = [player3, player4]
@@ -24,6 +24,8 @@ class Games:
 
         # Compute the expected result
         self.compute_expected_result()
+        self.set_winner(score1, score2)
+        self.update_plusminus(player1, player2, player3, player4, score1, score2)
 
     def compute_expected_result(self):
         self.E1 = 1.0 / (1.0 + pow(10.0, ((self.team1[0].elo - self.team2_elo) / (self.team1[0].elo * self.elo_const))))
@@ -34,6 +36,13 @@ class Games:
     def set_winner(self, score1, score2):
         self.winner_team_index = 1 if score1 > score2 else 2
         self.k_const = 10 * abs(score1 - score2)
+
+    def update_plusminus(self, player1, player2, player3, player4, score1, score2):
+        player1.plusminus += score1 - score2
+        player2.plusminus += score1 - score2
+        player3.plusminus += score2 - score1
+        player4.plusminus += score2 - score1
+
 
     def update_elo(self):
         if self.winner_team_index == 1:
@@ -67,9 +76,15 @@ class Player:
         self.sub = sub
         self.wins = 0
         self.losses = 0
+        self.plusminus = 0
 
     def get_win_rate(self):
         if self.wins + self.losses != 0:
             win_rate = round((self.wins/(self.wins + self.losses))*100,1)
             return str(win_rate) + "%"
         else: return str(0) + "%"
+
+    def average_plusminus(self):
+        if self.wins + self.losses != 0:
+            return round((self.plusminus)/((self.wins + self.losses)/5), 2)
+        else: return 0

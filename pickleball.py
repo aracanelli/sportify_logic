@@ -32,8 +32,7 @@ def play_games(games, players):
         elo3 = player3.elo
         elo4 = player4.elo
 
-        match.set_team(player1, player2, player3, player4)
-        match.set_winner(game[4], game[5])
+        match.set_team(player1, player2, player3, player4, game[4], game[5])
         match.update_elo()
         print(f"Game: {player1.name}, {player2.name} vs {player3.name}, {player4.name}")
         print(f"Score: {game[4]} - {game[5]}")
@@ -50,9 +49,9 @@ def print_ranks(printed_players, full_time=True):
     for rank, player in enumerate(printed_players, start=1):
         if full_time:
             if player.sub == False:
-                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
+                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}, Plus/Minus : {player.average_plusminus()}")
         else:
-            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
+            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}, Plus/Minus : {player.average_plusminus()}")
     print(f"")
 
 
@@ -414,5 +413,5 @@ if __name__ == "__main__":
         "Cha-Nel"
     ]
 
-    generate_all_games(player_list, games, name_to_player, sorted_players)
+    #generate_all_games(player_list, games, name_to_player, sorted_players)
 
