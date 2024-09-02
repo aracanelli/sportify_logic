@@ -49,10 +49,19 @@ def print_ranks(printed_players, full_time=True):
     for rank, player in enumerate(printed_players, start=1):
         if full_time:
             if player.sub == False:
-                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}, Plus/Minus : {player.average_plusminus()}")
+                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
         else:
-            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}, Plus/Minus : {player.average_plusminus()}")
+            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
     print(f"")
+
+def print_team_win_losses_rate(printed_players):
+    print("Best Teammates:")
+    max_win_rate = -1
+    for player in printed_players:
+        for teammate in printed_players: 
+            if teammate.id != player.id:
+                print(f"Player: {player.name}, Teammate: {teammate.name}, Win Rate: {player.get_win_rate_with(teammate.id)}, Games Player: {player.wins_with[teammate.id] + player.losses_with[teammate.id]}")
+            
 
 
 def pair_exists(match_pair, played_matches):
@@ -284,7 +293,7 @@ def replace_name(players_list, old_name, new_name):
 def create_game_csv(players_list, num_games, num_courts, filename="games.csv"):
     # Determine the number of games
     num_players_on_court = 4
-    num_players = int(len(players_list) / num_courts / num_games * num_players_on_court)
+    num_players = int(len(players_list) / num_games)
     # Open the CSV file for writing
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -307,7 +316,10 @@ def create_game_csv(players_list, num_games, num_courts, filename="games.csv"):
                 replace_name(players_list, "Baller", "Ballerini")
                 replace_name(players_list, "Steve", "Steven")
 
-                idx = (court_num * num_courts) + (game_num * num_players)
+                if game_num == 2:
+                    testing = 1
+
+                idx = (court_num * num_players_on_court) + (game_num * num_players)
 
                 row_1 = [players_list[0 + idx], players_list[2 + idx]]
                 row_2 = [players_list[1 + idx], players_list[3 + idx]]
@@ -336,8 +348,9 @@ def get_ranks():
 
     print_ranks(sorted_ft_players)
     print_ranks(sorted_players, False)
+    print_team_win_losses_rate(sorted_ft_players)
 
-    return games, name_to_player, sorted_players
+    return games, name_to_player, sorted_players  
 
 def generate_all_games(player_list, games, name_to_player, sorted_players):
 
@@ -387,7 +400,7 @@ def generate_all_games(player_list, games, name_to_player, sorted_players):
         current_game_players = elo_based_players[start_index:end_index]
         print_game_schedule(f"Game {i + num_elo_split_games}", current_game_players)
 
-    create_game_csv(game_players, 5, 5)
+    create_game_csv(game_players, num_games=5, num_courts=5)
 
 
 if __name__ == "__main__":
@@ -395,23 +408,27 @@ if __name__ == "__main__":
     games, name_to_player, sorted_players = get_ranks()
 
     player_list = [
-        "Matt",
-        "James C",
-        "Marilou",
+        "Scarfo",
+        "Marcella",
+        "Sandra",
         "Falcone",
         "Vick",
         "Szymbo",
-        "Chris",
-        "Jenna",
-        "Dims",
+        "Steve",
+        "Sarah",
+        "James",
         "Anthony",
         "Erica",
         "Baller",
         "Sam",
         "Taurasi",
         "Felix",
-        "Cha-Nel"
+        "Cha-Nel",
+        "Marilou",
+        "Matt S",
+        "Lauren",
+        "Jenna"
     ]
 
-    #generate_all_games(player_list, games, name_to_player, sorted_players)
-
+    generate_all_games(player_list, games, name_to_player, sorted_players)
+    

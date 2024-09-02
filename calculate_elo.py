@@ -56,6 +56,12 @@ class Games:
             self.team1[1].wins = self.team1[1].wins + 1
             self.team2[0].losses = self.team2[0].losses + 1
             self.team2[1].losses = self.team2[1].losses + 1
+
+            self.team1[0].wins_with[self.team1[1].id] += 1
+            self.team1[1].wins_with[self.team1[0].id] += 1
+            self.team2[0].losses_with[self.team2[1].id] += 1
+            self.team2[1].losses_with[self.team2[0].id] += 1
+
         elif self.winner_team_index == 2:
             self.team1[0].elo = self.team1[0].elo + self.k_const * (-1 + self.E1)
             self.team1[1].elo = self.team1[1].elo + self.k_const * (-1 + self.E2)
@@ -67,6 +73,10 @@ class Games:
             self.team2[0].wins = self.team2[0].wins + 1
             self.team2[1].wins = self.team2[1].wins + 1
 
+            self.team1[0].losses_with[self.team1[1].id] += 1
+            self.team1[1].losses_with[self.team1[0].id] += 1
+            self.team2[0].wins_with[self.team2[1].id] += 1
+            self.team2[1].wins_with[self.team2[0].id] += 1
 
 class Player:
     def __init__(self, id, name, sub=False):
@@ -78,6 +88,10 @@ class Player:
         self.losses = 0
         self.plusminus = 0
 
+        #elo_split_opponents = [[0] * max_id for _ in range(max_id)]
+        self.wins_with = [0 for _ in range(100)]
+        self.losses_with = [0 for _ in range(100)]
+
     def get_win_rate(self):
         if self.wins + self.losses != 0:
             win_rate = round((self.wins/(self.wins + self.losses))*100,1)
@@ -87,4 +101,9 @@ class Player:
     def average_plusminus(self):
         if self.wins + self.losses != 0:
             return round((self.plusminus)/((self.wins + self.losses)/5), 2)
+        else: return 0
+
+    def get_win_rate_with(self, id):
+        if self.wins_with[id] + self.losses_with[id] != 0:
+            return round((self.wins_with[id]/(self.wins_with[id] + self.losses_with[id])) * 100, 2)
         else: return 0
