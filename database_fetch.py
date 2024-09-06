@@ -39,8 +39,8 @@ def fetch_history(group_id):
 
     cursor.execute("""
         SELECT player1_id, player2_id, player3_id, player4_id, score1, score2
-        FROM history
-    """)
+        FROM history where group_id = 
+    """ + str(group_id))
 
     history = cursor.fetchall()
 

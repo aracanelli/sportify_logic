@@ -1,5 +1,5 @@
 import database_fetch
-from calculate_elo import Games, Player
+from calculate_elo import Games, Player, Team
 from itertools import combinations
 import random
 import csv
@@ -16,7 +16,7 @@ def print_game_schedule(game_title, game_players):
     num_courts = int(num_players / 4)
     for i, court_number in enumerate(range(1, num_courts+1)):
         players = game_players[i * 4:(i + 1) * 4]
-        print_court(court_number, *players)
+        print_court(court_number+8, *players)
     print()
 
 
@@ -333,8 +333,8 @@ def create_game_csv(players_list, num_games, num_courts, filename="games.csv"):
             writer.writerow(["", ""])  # Empty row for spacing
 
 
-def get_ranks():
-    group_id = database_fetch.get_group_id("Boyz Pickleball")
+def get_ranks(group_name):
+    group_id = database_fetch.get_group_id(group_name)
     player_ids = database_fetch.fetch_players(group_id)
     games = database_fetch.fetch_history(group_id)
 
@@ -348,11 +348,11 @@ def get_ranks():
 
     print_ranks(sorted_ft_players)
     print_ranks(sorted_players, False)
-    print_team_win_losses_rate(sorted_ft_players)
+    #print_team_win_losses_rate(sorted_ft_players)
 
     return games, name_to_player, sorted_players  
 
-def generate_all_games(player_list, games, name_to_player, sorted_players):
+def generate_all_games(player_list, games, name_to_player, sorted_players, num_games):
 
     num_players = len(player_list)
     num_matches = num_players / 4
@@ -400,13 +400,75 @@ def generate_all_games(player_list, games, name_to_player, sorted_players):
         current_game_players = elo_based_players[start_index:end_index]
         print_game_schedule(f"Game {i + num_elo_split_games}", current_game_players)
 
-    create_game_csv(game_players, num_games=5, num_courts=5)
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
 
+def generate_random_teams(player_list, name_to_player, num_games, num_courts):
+    num_players = len(player_list)
+    num_teams = int(num_players / 2)
+    teams = [0 for _ in range(num_teams)]
+    player_order = []
+
+    sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
+    random.shuffle(sorted_playing_players)
+
+    j = 0
+    for i in range(0, num_teams):
+        teams[i] = Team(sorted_playing_players[j], sorted_playing_players[j+1], "Team" + str(i))
+        j=j+2
+
+    print_teams(teams)
+    random.shuffle(teams)
+    matchups = generate_random_matchups(teams, num_games)
+    print_matchups(matchups)
+
+def generate_random_matchups(teams, n):
+    # Generate all possible matchups (team pairs)
+    all_matchups = list(combinations(teams, 2))
+    match_history = set()
+    rounds = []
+    
+    for _ in range(n):
+        round_matchups = []
+        available_teams = set(teams)
+        
+        for team1, team2 in all_matchups:
+            if team1 in available_teams and team2 in available_teams and (team1, team2) not in match_history and (team2, team1) not in match_history:
+                round_matchups.append((team1, team2))
+                match_history.add((team1, team2))
+                available_teams.remove(team1)
+                available_teams.remove(team2)
+            
+            if len(round_matchups) == 4:  # 4 matchups per round
+                break
+        
+        if len(round_matchups) != 4:
+            raise ValueError("Not enough matchups can be generated without repetition.")
+        
+        rounds.append(round_matchups)
+    
+    return rounds
+
+def print_matchups(rounds):
+    for i, round_matchups in enumerate(rounds):
+        court_number = 9
+        random.shuffle(round_matchups)
+        print(f"Game {i+1}:")
+        for team1, team2 in round_matchups:
+            print(f"Court {court_number:02}: {team1.player1.name} & {team1.player2.name} vs {team2.player1.name} & {team2.player2.name}")
+            court_number += 1
+        print()
+
+def print_teams(teams):
+    i = 1
+    for team in teams:
+        print(f"Team {i}: {team.player1.name} and {team.player2.name}")
+        i=i+1
+    print()
 
 if __name__ == "__main__":
     
-    games, name_to_player, sorted_players = get_ranks()
-
+    games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
+    '''
     player_list = [
         "Scarfo",
         "Marcella",
@@ -429,6 +491,26 @@ if __name__ == "__main__":
         "Lauren",
         "Jenna"
     ]
+    '''
+    player_list = [
+        "Anthony",
+        "Marcello",
+        "Mario",
+        "Dominic",
+        "Panos",
+        "Stephane",
+        "Tony",
+        "Anthony P",
+        "David",
+        "Dino",
+        "Frank",
+        "Nick",
+        "Patrick",
+        "Sebastien",
+        "Francis",
+        "Vince D"
 
-    generate_all_games(player_list, games, name_to_player, sorted_players)
+    ]
+    generate_random_teams(player_list, name_to_player, num_games=7)
+    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=4)
     
