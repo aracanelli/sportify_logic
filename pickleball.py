@@ -125,9 +125,8 @@ def get_previous_games(games_to_load, sorted_players):
         team1 = (new_player_list[i].id, new_player_list[i+1].id)
         team2 = (new_player_list[i+2].id, new_player_list[i+3].id)
 
-        previous_games_to_load = previous_games_to_load + [[team1, team2]]
+        previous_games_to_load = previous_games_to_load + [team1, team2]
     return previous_games_to_load
-
 
 def validate_elo_split_games(game_matchups):
     max_id = 0
@@ -352,7 +351,7 @@ def get_ranks(group_name):
 
     return games, name_to_player, sorted_players  
 
-def generate_all_games(player_list, games, name_to_player, sorted_players, num_games):
+def generate_all_games(player_list, games, name_to_player, sorted_players, num_games, num_courts):
 
     num_players = len(player_list)
     num_matches = num_players / 4
@@ -360,7 +359,7 @@ def generate_all_games(player_list, games, name_to_player, sorted_players, num_g
     sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
     pairs = list(combinations(sorted_playing_players, 2))
     matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
-    previous_games = get_previous_games(games[-20:], sorted_players)
+    previous_games = get_previous_games(games[-25:], sorted_players)
     filtered_matchup = remove_matchups(matches, [previous_games])
 
     num_elo_split_games = 2
@@ -420,6 +419,17 @@ def generate_random_teams(player_list, name_to_player, num_games, num_courts):
     random.shuffle(teams)
     matchups = generate_random_matchups(teams, num_games)
     print_matchups(matchups)
+    game_players = convert_matchups(matchups)
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
+
+def convert_matchups(matchups):
+    game_players = []
+    for i, match in enumerate(matchups):
+        for team1, team2 in match:
+            game_players = game_players + [team1.player1.name] + [team1.player2.name] + [team2.player1.name] + [team2.player2.name]
+
+    return game_players
+
 
 def generate_random_matchups(teams, n):
     # Generate all possible matchups (team pairs)
@@ -467,26 +477,27 @@ def print_teams(teams):
 
 if __name__ == "__main__":
     
+    #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
     games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
     '''
     player_list = [
         "Scarfo",
-        "Marcella",
+        "Fred",
         "Sandra",
-        "Falcone",
+        "James",
         "Vick",
         "Szymbo",
         "Steve",
         "Sarah",
-        "James",
+        "Chris",
         "Anthony",
-        "Erica",
+        "Marcella",
         "Baller",
         "Sam",
         "Taurasi",
         "Felix",
-        "Cha-Nel",
-        "Marilou",
+        "Erica",
+        "Vince",
         "Matt S",
         "Lauren",
         "Jenna"
@@ -498,19 +509,19 @@ if __name__ == "__main__":
         "Mario",
         "Dominic",
         "Panos",
-        "Stephane",
+        "Eric C",
         "Tony",
         "Anthony P",
         "David",
         "Dino",
         "Frank",
         "Nick",
-        "Patrick",
+        "Dominic R",
         "Sebastien",
         "Francis",
         "Vince D"
 
-    ]
-    generate_random_teams(player_list, name_to_player, num_games=7)
-    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=4)
+    ] 
+    generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
+    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
     
