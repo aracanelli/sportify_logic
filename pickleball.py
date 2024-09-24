@@ -45,7 +45,10 @@ def play_games(games, players):
 
 
 def print_ranks(printed_players, full_time=True):
-    print("Full-time players sorted by ELO:")
+    if full_time:
+        print("Full-time players sorted by ELO:")
+    else:
+        print("Full-time + Subs sorted by ELO")
     for rank, player in enumerate(printed_players, start=1):
         if full_time:
             if player.sub == False:
@@ -128,7 +131,11 @@ def get_previous_games(games_to_load, sorted_players):
         previous_games_to_load = previous_games_to_load + [team1, team2]
     return previous_games_to_load
 
-def validate_elo_split_games(game_matchups):
+def validate_elo_split_games(game_matchups, previous_games):
+    for pair in previous_games:
+        for match in game_matchups:
+            if (pair[0], pair[1]) in match or (pair[1], pair[0]) in match:
+                return True, []
     max_id = 0
     for game in game_matchups:
         team1 = game[0]
@@ -200,7 +207,7 @@ def validate_elo_based_games(game_matchups, prev_opponents, old_filtered_matchup
 
     return new_filtered_matchups, elo_based_opponents
 
-def generate_elo_split_games(num_of_games, sorted_playing_players):
+def generate_elo_split_games(num_of_games, sorted_playing_players, previous_games):
     num_players = len(sorted_playing_players)
     game_matchups = []
     player_order = []
@@ -239,7 +246,7 @@ def generate_elo_split_games(num_of_games, sorted_playing_players):
             #    [high_elo[0], high_elo[1], high_elo[2], high_elo[3], high_elo[4], high_elo[5], high_elo[6], high_elo[7],
             #     low_elo[0], low_elo[1], low_elo[2], low_elo[3], low_elo[4], low_elo[5], low_elo[6], low_elo[7]])
 
-        games_not_found, elo_split_opponents = validate_elo_split_games(game_matchups)
+        games_not_found, elo_split_opponents = validate_elo_split_games(game_matchups, previous_games)
     return game_matchups, player_order, elo_split_opponents
 
 
@@ -359,14 +366,15 @@ def generate_all_games(player_list, games, name_to_player, sorted_players, num_g
     sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
     pairs = list(combinations(sorted_playing_players, 2))
     matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
-    previous_games = get_previous_games(games[-25:], sorted_players)
+    last_weeks_games = games[-25:]
+    previous_games = get_previous_games(last_weeks_games, sorted_players)
     filtered_matchup = remove_matchups(matches, [previous_games])
 
     num_elo_split_games = 2
     num_elo_based_games = 3
     elo_dif = 0.1
 
-    elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games, sorted_playing_players)
+    elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games, sorted_playing_players, previous_games)
 
     game_players = [player.name for player in elo_split_players]
 
@@ -479,16 +487,16 @@ if __name__ == "__main__":
     
     #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
     games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
-    '''
+    ''''
     player_list = [
-        "Scarfo",
-        "Fred",
+        "Jesse",
+        "Silvio",
         "Sandra",
         "James",
         "Vick",
         "Szymbo",
         "Steve",
-        "Sarah",
+        "Linda",
         "Chris",
         "Anthony",
         "Marcella",
@@ -499,7 +507,7 @@ if __name__ == "__main__":
         "Erica",
         "Vince",
         "Matt S",
-        "Lauren",
+        "James C",
         "Jenna"
     ]
     '''
@@ -509,19 +517,19 @@ if __name__ == "__main__":
         "Mario",
         "Dominic",
         "Panos",
-        "Eric C",
+        "Patrick",
         "Tony",
         "Anthony P",
-        "David",
+        "Gianni O",
         "Dino",
         "Frank",
         "Nick",
-        "Dominic R",
+        "Naim",
         "Sebastien",
         "Francis",
-        "Vince D"
+        "Stephane"
 
     ] 
-    generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
+    #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
     #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
     

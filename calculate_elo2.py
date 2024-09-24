@@ -1,6 +1,6 @@
 class Games:
     def __init__(self):
-        self.elo_const = 0.3
+        self.elo_const = 0.5
         self.k_const = 100
 
         self.team1 = []
@@ -122,7 +122,7 @@ class Player:
 
     def get_win_rate_with(self, id):
         if self.wins_with[id] + self.losses_with[id] != 0:
-            return round((self.wins_with[id]/(self.wins_with[id] + self.losses_with[id] + self.ties_with[id])) * 100, 2)
+            return round((self.wins_with[id]/(self.wins_with[id] + self.losses_with[id] + self.ties_with[i])) * 100, 2)
         else: return 0
 
 class Team:
