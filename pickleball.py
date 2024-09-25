@@ -409,6 +409,79 @@ def generate_all_games(player_list, games, name_to_player, sorted_players, num_g
 
     create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
 
+def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.05, max_retries=100):
+    num_players = len(player_list)
+    num_teams = int(num_players / 2)
+    
+    for attempt in range(max_retries):
+        teams = []
+        used_players = set()
+
+        # Sort players by ELO in descending order
+        sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
+
+        top_player = sorted_playing_players[0]
+        bottom_player = sorted_playing_players[-1]
+
+        for previous_team in previous_teams:
+            if (top_player.id, bottom_player.id) in previous_team or (bottom_player.id, top_player.id) in previous_team:
+                bottom_player = sorted_playing_players[-2]
+
+        teams.append(Team(top_player, bottom_player, "TEAM"))
+        used_players.add(top_player)
+        used_players.add(bottom_player)
+        
+        # Remove top and bottom player from the list of available players
+        sorted_playing_players.remove(top_player)
+        sorted_playing_players.remove(bottom_player)
+        
+        # Shuffle the combinations to try random attempts
+        possible_combinations = list(combinations(sorted_playing_players, 2))
+        random.shuffle(possible_combinations)
+        
+        for player1, player2 in possible_combinations:
+            if player1 in used_players or player2 in used_players:
+                continue  # Skip players already assigned to a team
+
+            # Calculate average ELO and check the 10% tolerance range
+            average_elo = (player1.elo + player2.elo) / 2
+            if abs(player1.elo - average_elo) <= tolerance * average_elo and abs(player2.elo - average_elo) <= tolerance * average_elo:
+                teams.append(Team(player1, player2, "TEAM"))
+                used_players.add(player1)
+                used_players.add(player2)
+
+            # Stop once we have enough teams
+            if len(teams) == num_teams:
+                break
+
+        # If we formed all the teams, return them
+        if len(teams) == num_teams:
+            unique_teams = True
+            for previous_team in previous_teams:
+                for team in teams:
+                    if (team.player1.id, team.player2.id) in previous_team or (team.player2.id, team.player1.id) in previous_team:
+                        unique_teams = False
+            if unique_teams:
+                random.shuffle(teams)  # Shuffle to ensure randomness
+                return teams
+        
+    # If after max_retries no valid teams were formed, raise an error or return a fallback option
+    raise ValueError(f"Could not form valid teams within {max_retries} attempts")
+    
+def generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4):
+    
+    last_weeks_games = games[-24:]
+    previous_teams = get_previous_games(last_weeks_games, sorted_players)
+    
+    teams = generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player)
+
+    print_teams(teams)
+    random.shuffle(teams)
+    matchups = generate_random_matchups(teams, num_games)
+    print_matchups(matchups)
+    game_players = convert_matchups(matchups)
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
+
 def generate_random_teams(player_list, name_to_player, num_games, num_courts):
     num_players = len(player_list)
     num_teams = int(num_players / 2)
@@ -479,7 +552,7 @@ def print_matchups(rounds):
 def print_teams(teams):
     i = 1
     for team in teams:
-        print(f"Team {i}: {team.player1.name} and {team.player2.name}")
+        print(f"Team {i}: {team.player1.name} and {team.player2.name} - Average Rank: {round((team.player1.elo+team.player2.elo)/2,2)}")
         i=i+1
     print()
 
@@ -487,7 +560,7 @@ if __name__ == "__main__":
     
     #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
     games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
-    ''''
+    '''
     player_list = [
         "Jesse",
         "Silvio",
@@ -532,4 +605,4 @@ if __name__ == "__main__":
     ] 
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
     #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
-    
+    generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
