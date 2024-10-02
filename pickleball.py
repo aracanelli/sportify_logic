@@ -423,9 +423,10 @@ def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_pla
         top_player = sorted_playing_players[0]
         bottom_player = sorted_playing_players[-1]
 
-        for previous_team in previous_teams:
-            if (top_player.id, bottom_player.id) in previous_team or (bottom_player.id, top_player.id) in previous_team:
-                bottom_player = sorted_playing_players[-2]
+        if (top_player.id, bottom_player.id) in previous_teams or (bottom_player.id, top_player.id) in previous_teams:
+            bottom_player = sorted_playing_players[-2]
+        if (top_player.id, bottom_player.id) in previous_teams or (bottom_player.id, top_player.id) in previous_teams:
+            bottom_player = sorted_playing_players[-3]
 
         teams.append(Team(top_player, bottom_player, "TEAM"))
         used_players.add(top_player)
@@ -457,10 +458,9 @@ def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_pla
         # If we formed all the teams, return them
         if len(teams) == num_teams:
             unique_teams = True
-            for previous_team in previous_teams:
-                for team in teams:
-                    if (team.player1.id, team.player2.id) in previous_team or (team.player2.id, team.player1.id) in previous_team:
-                        unique_teams = False
+            for team in teams:
+                if (team.player1.id, team.player2.id) in previous_teams or (team.player2.id, team.player1.id) in previous_teams:
+                    unique_teams = False
             if unique_teams:
                 random.shuffle(teams)  # Shuffle to ensure randomness
                 return teams
@@ -470,7 +470,7 @@ def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_pla
     
 def generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4):
     
-    last_weeks_games = games[-24:]
+    last_weeks_games = games[-48:]
     previous_teams = get_previous_games(last_weeks_games, sorted_players)
     
     teams = generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player)
@@ -558,18 +558,18 @@ def print_teams(teams):
 
 if __name__ == "__main__":
     
-    #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
-    games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
-    '''
+    games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
+    #games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
+    
     player_list = [
-        "Jesse",
-        "Silvio",
+        "Falcone",
+        "Sarah",
         "Sandra",
         "James",
         "Vick",
         "Szymbo",
-        "Steve",
-        "Linda",
+        "Marco",
+        "Cha-Nel",
         "Chris",
         "Anthony",
         "Marcella",
@@ -578,8 +578,8 @@ if __name__ == "__main__":
         "Taurasi",
         "Felix",
         "Erica",
+        "Scarfo",
         "Vince",
-        "Matt S",
         "James C",
         "Jenna"
     ]
@@ -593,16 +593,16 @@ if __name__ == "__main__":
         "Patrick",
         "Tony",
         "Anthony P",
-        "Gianni O",
+        "David",
         "Dino",
         "Frank",
         "Nick",
-        "Naim",
+        "Vince D",
         "Sebastien",
         "Francis",
         "Stephane"
 
-    ] 
+    ] '''
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
     #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
-    generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
+    #generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
