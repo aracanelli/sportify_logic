@@ -1,7 +1,11 @@
 class Games:
     def __init__(self):
-        self.elo_const = 0.5
+        self.elo_const = 4000.0
+        self.k_factor = 320.0
         self.k_const = 100
+
+        self.actual_score_team1 = 0
+        self.actual_score_team2 = 0
 
         self.team1 = []
         self.team1_elo = 0
@@ -28,10 +32,13 @@ class Games:
         self.update_plusminus(player1, player2, player3, player4, score1, score2)
 
     def compute_expected_result(self):
-        self.E1 = 1.0 / (1.0 + pow(10.0, ((self.team1[0].elo - self.team2_elo) / (self.team1[0].elo * self.elo_const))))
-        self.E2 = 1.0 / (1.0 + pow(10.0, ((self.team1[1].elo - self.team2_elo) / (self.team1[1].elo * self.elo_const))))
-        self.E3 = 1.0 / (1.0 + pow(10.0, ((self.team2[0].elo - self.team1_elo) / (self.team2[0].elo * self.elo_const))))
-        self.E4 = 1.0 / (1.0 + pow(10.0, ((self.team2[1].elo - self.team1_elo) / (self.team2[1].elo * self.elo_const))))
+        self.E1 = 1.0 / (1.0 + pow(10.0, ((self.team1_elo - self.team2_elo) / (self.elo_const))))
+        self.E2 = 1.0 / (1.0 + pow(10.0, ((self.team1_elo - self.team2_elo) / (self.elo_const))))
+        self.E3 = 1.0 / (1.0 + pow(10.0, ((self.team2_elo - self.team1_elo) / (self.elo_const))))
+        self.E4 = 1.0 / (1.0 + pow(10.0, ((self.team2_elo - self.team1_elo) / (self.elo_const))))
+
+        self.expected_score_team1 = 1.0 / (1.0 + pow(10.0, ((self.team2_elo - self.team1_elo) / (self.elo_const))))
+        self.expected_score_team2 = 1.0 - self.expected_score_team1
 
     def set_winner(self, score1, score2):
         if score1 > score2:
@@ -40,7 +47,10 @@ class Games:
         elif score1 < score2:
             self.winner_team_index = 2
         else: self.winner_team_index = 0
-        self.k_const = 10 * abs(score1 - score2)
+        self.k_const = self.k_factor * abs(score1 - score2) / (score1 + score2)
+
+        self.actual_score_team1 = score1 / (score1 + score2)
+        self.actual_score_team2 = 1 - self.actual_score_team1
 
     def update_plusminus(self, player1, player2, player3, player4, score1, score2):
         player1.plusminus += score1 - score2
@@ -52,10 +62,10 @@ class Games:
     def update_elo(self):
         if self.winner_team_index == 1:
             # you can even make your k_const stronger for the difference in points, you'd update your input to accept score difference
-            self.team1[0].elo = self.team1[0].elo + self.k_const * (self.E1)
-            self.team1[1].elo = self.team1[1].elo + self.k_const * (self.E2)
-            self.team2[0].elo = self.team2[0].elo + self.k_const * (-1 + self.E3)
-            self.team2[1].elo = self.team2[1].elo + self.k_const * (-1 + self.E4)
+            self.team1[0].elo += self.k_const * (self.actual_score_team1 - self.expected_score_team1)
+            self.team1[1].elo += self.k_const * (self.actual_score_team1 - self.expected_score_team1)
+            self.team2[0].elo += self.k_const * (self.actual_score_team2 - self.expected_score_team2)
+            self.team2[1].elo += self.k_const * (self.actual_score_team2 - self.expected_score_team2)
 
             self.team1[0].wins = self.team1[0].wins + 1
             self.team1[1].wins = self.team1[1].wins + 1
@@ -68,10 +78,10 @@ class Games:
             self.team2[1].losses_with[self.team2[0].id] += 1
 
         elif self.winner_team_index == 2:
-            self.team1[0].elo = self.team1[0].elo + self.k_const * (-1 + self.E1)
-            self.team1[1].elo = self.team1[1].elo + self.k_const * (-1 + self.E2)
-            self.team2[0].elo = self.team2[0].elo + self.k_const * (self.E3)
-            self.team2[1].elo = self.team2[1].elo + self.k_const * (self.E4)
+            self.team1[0].elo += self.k_const * (self.actual_score_team1 - self.expected_score_team1)
+            self.team1[1].elo += self.k_const * (self.actual_score_team1 - self.expected_score_team1)
+            self.team2[0].elo += self.k_const * (self.actual_score_team2 - self.expected_score_team2)
+            self.team2[1].elo += self.k_const * (self.actual_score_team2 - self.expected_score_team2)
 
             self.team1[0].losses = self.team1[0].losses + 1
             self.team1[1].losses = self.team1[1].losses + 1
@@ -94,10 +104,10 @@ class Games:
             self.team2[1].ties_with[self.team2[0].id] += 1
 
 class Player:
-    def __init__(self, id, name, sub=False):
+    def __init__(self, id, name, level="I", sub=False):
         self.id = id
         self.name = name
-        self.elo = 1000
+        self.elo = 3000
         self.sub = sub
         self.wins = 0
         self.losses = 0

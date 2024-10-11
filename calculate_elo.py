@@ -94,15 +94,20 @@ class Games:
             self.team2[1].ties_with[self.team2[0].id] += 1
 
 class Player:
-    def __init__(self, id, name, sub=False):
+    def __init__(self, id, name, level="I", sub=False):
         self.id = id
         self.name = name
-        self.elo = 1000
         self.sub = sub
         self.wins = 0
         self.losses = 0
         self.ties = 0
         self.plusminus = 0
+        self.level = level
+        elo_dict = {"I": 1000, "B": 900, "A": 1100}
+
+        if sub:
+            self.elo = elo_dict.get(level, None)
+        else: self.elo = 1000
 
         #elo_split_opponents = [[0] * max_id for _ in range(max_id)]
         self.wins_with = [0 for _ in range(100)]

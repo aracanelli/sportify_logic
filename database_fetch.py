@@ -22,7 +22,7 @@ def fetch_players(group_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT p.player_id, p.nick_name, pg.sub 
+        SELECT p.player_id, p.nick_name, p.level, pg.sub
         FROM player_groups pg, players p 
         WHERE p.player_id = pg.player_id and group_id = 
     """ + str(group_id))

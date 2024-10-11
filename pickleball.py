@@ -344,7 +344,7 @@ def get_ranks(group_name):
     player_ids = database_fetch.fetch_players(group_id)
     games = database_fetch.fetch_history(group_id)
 
-    players = {player_id: Player(player_id, player_name, sub) for player_id, player_name, sub in player_ids}
+    players = {player_id: Player(player_id, player_name, level, sub) for player_id, player_name, level, sub in player_ids}
     name_to_player = {player.name: player for player in players.values()}
 
     play_games(games, players)
@@ -409,7 +409,7 @@ def generate_all_games(player_list, games, name_to_player, sorted_players, num_g
 
     create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
 
-def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.05, max_retries=100):
+def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.03, max_retries=100000):
     num_players = len(player_list)
     num_teams = int(num_players / 2)
     
@@ -435,6 +435,22 @@ def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_pla
         # Remove top and bottom player from the list of available players
         sorted_playing_players.remove(top_player)
         sorted_playing_players.remove(bottom_player)
+
+        second_top_player = sorted_playing_players[0]
+        second_bottom_player = sorted_playing_players[-1]
+
+        if (second_top_player.id, second_bottom_player.id) in previous_teams or (second_bottom_player.id, second_top_player.id) in previous_teams:
+            second_bottom_player = sorted_playing_players[-2]
+        if (second_top_player.id, second_bottom_player.id) in previous_teams or (second_bottom_player.id, second_top_player.id) in previous_teams:
+            second_bottom_player = sorted_playing_players[-3]
+
+        teams.append(Team(second_top_player, second_bottom_player, "TEAM"))
+        used_players.add(second_top_player)
+        used_players.add(second_bottom_player)
+        
+        # Remove top and bottom player from the list of available players
+        sorted_playing_players.remove(second_top_player)
+        sorted_playing_players.remove(second_bottom_player)
         
         # Shuffle the combinations to try random attempts
         possible_combinations = list(combinations(sorted_playing_players, 2))
@@ -562,45 +578,45 @@ if __name__ == "__main__":
     #games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
     
     player_list = [
-        "Falcone",
-        "Sarah",
+        "Linda",
+        "Gio",
+        "Selinda",
+        "Lauren",
+        "Matt S",
         "Sandra",
-        "James",
-        "Vick",
-        "Szymbo",
-        "Marco",
-        "Cha-Nel",
-        "Chris",
-        "Anthony",
-        "Marcella",
-        "Baller",
-        "Sam",
-        "Taurasi",
-        "Felix",
+        "Falcone",
         "Erica",
-        "Scarfo",
-        "Vince",
+        "Felix",
+        "Vick",
+        "Sam",
+        "Jenna",
+        "Marcella",
+        "Anthony",
+        "Steve",
+        "Chris",
         "James C",
-        "Jenna"
+        "Taurasi",
+        "Szymbo",
+        "James"
     ]
     '''
     player_list = [
-        "Anthony",
         "Marcello",
-        "Mario",
         "Dominic",
-        "Panos",
-        "Patrick",
-        "Tony",
-        "Anthony P",
-        "David",
-        "Dino",
-        "Frank",
-        "Nick",
-        "Vince D",
         "Sebastien",
+        "Vince D",
+        "David",
+        "Roger",
+        "Dino",
+        "Stephane",
         "Francis",
-        "Stephane"
+        "Steve",
+        "Anthony",
+        "Mario",
+        "Dominic R",
+        "Philippe",
+        "Pino",
+        "Tristan"
 
     ] '''
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
