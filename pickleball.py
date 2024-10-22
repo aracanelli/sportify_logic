@@ -578,47 +578,47 @@ if __name__ == "__main__":
     #games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
     
     player_list = [
+        "Silvio",
         "Linda",
-        "Gio",
-        "Selinda",
-        "Lauren",
-        "Matt S",
+        "Vince",
         "Sandra",
-        "Falcone",
         "Erica",
+        "Falcone",
+        "Cha-Nel",
+        "Baller",
+        "Szymbo",
         "Felix",
-        "Vick",
-        "Sam",
-        "Jenna",
         "Marcella",
-        "Anthony",
-        "Steve",
+        "Vick",
+        "Taurasi",
+        "Sam",
         "Chris",
         "James C",
-        "Taurasi",
-        "Szymbo",
-        "James"
+        "Matt S",
+        "Scarfo",
+        "Marco",
+        "Layla"
     ]
     '''
     player_list = [
-        "Marcello",
-        "Dominic",
         "Sebastien",
-        "Vince D",
-        "David",
-        "Roger",
-        "Dino",
-        "Stephane",
-        "Francis",
-        "Steve",
-        "Anthony",
+        "Dominic",
+        "Nick",
+        "Frank",
+        "Anthony P",
         "Mario",
+        "Francis",
+        "Marcello",
+        "Panos",
+        "Dino",
+        "Vince D",
+        "Gianni O",
+        "Phil",
+        "Martin",
         "Dominic R",
-        "Philippe",
-        "Pino",
-        "Tristan"
+        "Pino"
 
     ] '''
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
-    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
+    generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
     #generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)

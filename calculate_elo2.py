@@ -47,10 +47,15 @@ class Games:
         elif score1 < score2:
             self.winner_team_index = 2
         else: self.winner_team_index = 0
-        self.k_const = self.k_factor * abs(score1 - score2) / (score1 + score2)
-
-        self.actual_score_team1 = score1 / (score1 + score2)
-        self.actual_score_team2 = 1 - self.actual_score_team1
+        
+        if score1 + score2 == 0:
+            self.k_const = 0
+            self.actual_score_team1 = 0
+            self.actual_score_team2 = 0
+        else:
+            self.k_const = self.k_factor * abs(score1 - score2) / (score1 + score2)
+            self.actual_score_team1 = score1 / (score1 + score2)
+            self.actual_score_team2 = 1 - self.actual_score_team1
 
     def update_plusminus(self, player1, player2, player3, player4, score1, score2):
         player1.plusminus += score1 - score2
