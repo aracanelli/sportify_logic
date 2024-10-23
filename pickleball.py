@@ -344,7 +344,7 @@ def get_ranks(group_name):
     player_ids = database_fetch.fetch_players(group_id)
     games = database_fetch.fetch_history(group_id)
 
-    players = {player_id: Player(player_id, player_name, level, sub) for player_id, player_name, level, sub in player_ids}
+    players = {player_id: Player(player_id, player_name, level, sub, has_played) for player_id, player_name, level, sub, has_played in player_ids}
     name_to_player = {player.name: player for player in players.values()}
 
     play_games(games, players)
@@ -620,5 +620,5 @@ if __name__ == "__main__":
 
     ] '''
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
-    generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
+    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
     #generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)

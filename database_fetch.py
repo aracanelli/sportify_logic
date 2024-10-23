@@ -22,7 +22,14 @@ def fetch_players(group_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT p.player_id, p.nick_name, p.level, pg.sub
+        SELECT p.player_id, p.nick_name, p.level, pg.sub,
+        case when exists(select 1 from history 
+                            where player1_id=p.player_id 
+                            or player2_id=p.player_id
+                            or player3_id=p.player_id
+                            or player4_id=p.player_id
+                            and group_id = """ + str(group_id) +
+                            """) then true else false end as has_played
         FROM player_groups pg, players p 
         WHERE p.player_id = pg.player_id and group_id = 
     """ + str(group_id))

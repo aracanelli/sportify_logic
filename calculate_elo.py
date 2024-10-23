@@ -94,7 +94,7 @@ class Games:
             self.team2[1].ties_with[self.team2[0].id] += 1
 
 class Player:
-    def __init__(self, id, name, level="I", sub=False):
+    def __init__(self, id, name, level="I", sub=False, has_played=True):
         self.id = id
         self.name = name
         self.sub = sub
@@ -103,6 +103,7 @@ class Player:
         self.ties = 0
         self.plusminus = 0
         self.level = level
+        self.has_played = has_played
         elo_dict = {"I": 1000, "B": 900, "A": 1100}
 
         if sub:
