@@ -1,5 +1,5 @@
 import database_fetch
-from calculate_elo import Games, Player, Team
+from calculate_elo2 import Games, Player, Team
 from itertools import combinations
 import random
 import csv
@@ -409,10 +409,40 @@ def generate_all_games(player_list, games, name_to_player, sorted_players, num_g
 
     create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
 
-def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.03, max_retries=100000):
+def force_teams(player_list, name_to_player):
+    forced_team = []
+    player1 =  name_to_player["Anthony"]
+    player2 =  name_to_player["James"]
+
+    player3 =  name_to_player["Mario"]
+    player4 =  name_to_player["Felix"]
+
+    forced_team.append(Team(player1,player2, "TEAM"))
+    forced_team.append(Team(player3,player4, "TEAM"))
+
+    players_to_remove = [player1, player2, player3, player4]
+
+    for player in players_to_remove:
+        # Remove from name_to_player dictionary
+        name_to_player.pop(player.name, None)
+        
+        # Remove from player_list if it contains names
+        if player.name in player_list:
+            player_list.remove(player.name)
+
+    return forced_team
+
+def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.05, max_retries=100000):
     num_players = len(player_list)
     num_teams = int(num_players / 2)
     
+    
+
+    forced_teams = []
+    forced_teams = force_teams(player_list, name_to_player)
+
+    
+
     for attempt in range(max_retries):
         teams = []
         used_players = set()
@@ -468,18 +498,18 @@ def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_pla
                 used_players.add(player2)
 
             # Stop once we have enough teams
-            if len(teams) == num_teams:
+            if len(teams) == num_teams - len(forced_teams):
                 break
 
         # If we formed all the teams, return them
-        if len(teams) == num_teams:
+        if len(teams) == num_teams - len(forced_teams):
             unique_teams = True
             for team in teams:
                 if (team.player1.id, team.player2.id) in previous_teams or (team.player2.id, team.player1.id) in previous_teams:
                     unique_teams = False
             if unique_teams:
                 random.shuffle(teams)  # Shuffle to ensure randomness
-                return teams
+                return teams + forced_teams
         
     # If after max_retries no valid teams were formed, raise an error or return a fallback option
     raise ValueError(f"Could not form valid teams within {max_retries} attempts")
@@ -574,51 +604,51 @@ def print_teams(teams):
 
 if __name__ == "__main__":
     
-    games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
-    #games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
-    
+    #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
+    games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
+    '''
     player_list = [
-        "Silvio",
-        "Linda",
-        "Vince",
         "Sandra",
-        "Erica",
-        "Falcone",
-        "Cha-Nel",
-        "Baller",
-        "Szymbo",
-        "Felix",
-        "Marcella",
-        "Vick",
-        "Taurasi",
         "Sam",
-        "Chris",
+        "Falcone",
+        "Baller",
+        "Anthony",
+        "Vick",
+        "Sarah",
         "James C",
-        "Matt S",
-        "Scarfo",
         "Marco",
-        "Layla"
+        "Joe",
+        "Matt S",
+        "Cha-Nel",
+        "Szymbo",
+        "Steve",
+        "Erica",
+        "Jenna",
+        "Taurasi",
+        "Scarfo",
+        "James",
+        "Silvio"
     ]
     '''
     player_list = [
-        "Sebastien",
-        "Dominic",
-        "Nick",
         "Frank",
-        "Anthony P",
-        "Mario",
+        "Dominic",
         "Francis",
-        "Marcello",
+        "Anthony",
         "Panos",
-        "Dino",
-        "Vince D",
-        "Gianni O",
-        "Phil",
+        "Mario",
+        "Marcello",
+        "Stephane",
+        "James",
+        "Felix",
+        "Nachiket",
+        "Naim",
+        "Steve",
         "Martin",
-        "Dominic R",
-        "Pino"
+        "Tristan",
+        "Enzo"
 
-    ] '''
+    ] 
     #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
     #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
-    #generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
+    generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
