@@ -1,0 +1,608 @@
+import database_fetch
+from calculate_elo2 import Games, Player, Team
+from itertools import combinations
+import random
+import csv
+
+def print_game_schedule(game_title, game_players):
+    def print_court(court_number, player1, player2, player3, player4):
+        team1_avg_elo = round((player1.elo + player2.elo) / 2, 1)
+        team2_avg_elo = round((player3.elo + player4.elo) / 2, 1)
+        print(
+            f"Court {court_number:02}: {player1.name} and {player2.name} ({team1_avg_elo}) vs {player3.name} and {player4.name} ({team2_avg_elo})")
+
+    print(game_title)
+    num_players = len(game_players)
+    num_courts = int(num_players / 4)
+    for i, court_number in enumerate(range(1, num_courts+1)):
+        players = game_players[i * 4:(i + 1) * 4]
+        print_court(court_number+8, *players)
+    print()
+
+
+def play_games(games, players):
+    for game in games:
+        match = Games()
+        player1 = players[game[0]]
+        player2 = players[game[1]]
+        player3 = players[game[2]]
+        player4 = players[game[3]]
+        elo1 = player1.elo
+        elo2 = player2.elo
+        elo3 = player3.elo
+        elo4 = player4.elo
+
+        match.set_team(player1, player2, player3, player4, game[4], game[5])
+        match.update_elo()
+        print(f"Game: {player1.name}, {player2.name} vs {player3.name}, {player4.name}")
+        print(f"Score: {game[4]} - {game[5]}")
+        print(f"Team 1 elo: {round(match.team1_elo, 1)}, Team 2 elo: {round(match.team2_elo, 1)}")
+        print(f"Old elo: {round(elo1, 1)}, New elo: {player1.name} - {round(player1.elo, 1)}, Elo diff: {round(player1.elo - elo1, 1)}, E1 = {round(match.E1, 2)}")
+        print(f"Old elo: {round(elo2, 1)}, New elo: {player2.name} - {round(player2.elo, 1)}, Elo diff: {round(player2.elo - elo2, 1)}, E2 = {round(match.E2, 2)}")
+        print(f"Old elo: {round(elo3, 1)}, New elo: {player3.name} - {round(player3.elo, 1)}, Elo diff: {round(player3.elo - elo3, 1)}, E3 = {round(match.E3, 2)}")
+        print(f"Old elo: {round(elo4, 1)}, New elo: {player4.name} - {round(player4.elo, 1)}, Elo diff: {round(player4.elo - elo4, 1)}, E4 = {round(match.E4, 2)}")
+        print(f"")
+
+
+def print_ranks(printed_players, full_time=True):
+    if full_time:
+        print("Full-time players sorted by ELO:")
+    else:
+        print("Full-time + Subs sorted by ELO")
+    for rank, player in enumerate(printed_players, start=1):
+        if full_time:
+            if player.sub == False:
+                print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo,1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
+        else:
+            print(f"Rank: {rank}, Name: {player.name}, ELO: {round(player.elo, 1)}, Wins: {player.wins}, Win Rate: {player.get_win_rate()}")
+    print(f"")
+
+def print_team_win_losses_rate(printed_players):
+    print("Best Teammates:")
+    max_win_rate = -1
+    for player in printed_players:
+        for teammate in printed_players: 
+            if teammate.id != player.id:
+                print(f"Player: {player.name}, Teammate: {teammate.name}, Win Rate: {player.get_win_rate_with(teammate.id)}, Games Player: {player.wins_with[teammate.id] + player.losses_with[teammate.id]}")
+            
+
+
+def pair_exists(match_pair, played_matches):
+    for pair in match_pair:
+        for match in played_matches:
+            if (pair[0].id, pair[1].id) in match or (pair[1].id, pair[0].id) in match:
+                return True
+
+    return False
+
+
+def opponent_exists(match_pair, played_matches):
+
+    player1 = played_matches[0][0].id
+    player2 = played_matches[0][1].id
+    player3 = played_matches[1][0].id
+    player4 = played_matches[1][1].id
+
+    team1_ids = (match_pair[0][0].id, match_pair[0][1].id)
+    team2_ids = (match_pair[1][0].id, match_pair[1][1].id)
+
+    condition1 = player1 in team1_ids and (player3 in team2_ids or player4 in team2_ids)
+    condition2 = player1 in team2_ids and (player3 in team1_ids or player4 in team1_ids)
+    condition3 = player2 in team1_ids and (player3 in team2_ids or player4 in team2_ids)
+    condition4 = player2 in team2_ids and (player3 in team1_ids or player4 in team1_ids)
+    condition5 = player3 in team1_ids and (player1 in team2_ids or player2 in team2_ids)
+    condition6 = player3 in team2_ids and (player1 in team1_ids or player2 in team1_ids)
+    condition7 = player4 in team1_ids and (player1 in team2_ids or player2 in team2_ids)
+    condition8 = player4 in team2_ids and (player1 in team1_ids or player2 in team1_ids)
+
+    all_conditions = condition1 or condition2 or condition3 or condition4 or condition5 or condition6 or condition7 or condition8
+
+    if all_conditions:
+        return True
+
+    return False
+
+
+# Function to check if a match should be removed
+def should_remove(match, played_matches, remove_opponents):
+    if remove_opponents:
+        return opponent_exists(match, played_matches)
+    else:
+        return pair_exists(match, played_matches)
+
+
+def remove_matchups(all_matches, matches_to_remove, remove_opponents=False):
+    return [match for match in all_matches if not should_remove(match, matches_to_remove, remove_opponents)]
+
+
+def get_previous_games(games_to_load, sorted_players):
+    player_dict = {player.id: player for player in sorted_players}
+    temp_player_list = []
+
+    for game in games_to_load:
+        temp_player_list.extend(game[:4])
+
+    new_player_list = [player_dict[player_id] for player_id in temp_player_list]
+    previous_games_to_load = []
+    for i in range(0, len(new_player_list), 4):
+        team1 = (new_player_list[i].id, new_player_list[i+1].id)
+        team2 = (new_player_list[i+2].id, new_player_list[i+3].id)
+
+        previous_games_to_load = previous_games_to_load + [team1, team2]
+    return previous_games_to_load
+
+def validate_elo_split_games(game_matchups, previous_games):
+    for pair in previous_games:
+        for match in game_matchups:
+            if (pair[0], pair[1]) in match or (pair[1], pair[0]) in match:
+                return True, []
+    max_id = 0
+    for game in game_matchups:
+        team1 = game[0]
+        team2 = game[1]
+        for player in team1 + team2:
+            if player > max_id:
+                max_id = player
+
+    max_id += 1  # To accommodate 0-based indexing
+    elo_split_opponents = [[0] * max_id for _ in range(max_id)]
+    elo_split_teammates = [[0] * max_id for _ in range(max_id)]
+
+    for game in game_matchups:
+        team1 = game[0]
+        team2 = game[1]
+
+        elo_split_teammates[team1[1]][team1[0]] += 1
+        elo_split_teammates[team1[0]][team1[1]] += 1
+        elo_split_teammates[team2[0]][team2[1]] += 1
+        elo_split_teammates[team2[1]][team2[0]] += 1
+
+        elo_split_opponents[team1[0]][team2[0]] += 1
+        elo_split_opponents[team1[0]][team2[1]] += 1
+        elo_split_opponents[team1[1]][team2[0]] += 1
+        elo_split_opponents[team1[1]][team2[1]] += 1
+
+        elo_split_opponents[team2[0]][team1[0]] += 1
+        elo_split_opponents[team2[0]][team1[1]] += 1
+        elo_split_opponents[team2[1]][team1[0]] += 1
+        elo_split_opponents[team2[1]][team1[1]] += 1
+
+    for teammate in elo_split_teammates:
+        for i in teammate:
+            if i > 1:
+                return True, []
+
+    for opponent in elo_split_opponents:
+        for i in opponent:
+            if i > 1:
+                return True, []
+
+    return False, elo_split_opponents
+
+
+def validate_elo_based_games(game_matchups, prev_opponents, old_filtered_matchups):
+
+    elo_based_opponents = prev_opponents
+    new_filtered_matchups = old_filtered_matchups
+
+    for game in game_matchups:
+        team1 = game[0]
+        team2 = game[1]
+
+        elo_based_opponents[team1[0].id][team2[0].id] += 1
+        elo_based_opponents[team1[0].id][team2[1].id] += 1
+        elo_based_opponents[team1[1].id][team2[0].id] += 1
+        elo_based_opponents[team1[1].id][team2[1].id] += 1
+
+        elo_based_opponents[team2[0].id][team1[0].id] += 1
+        elo_based_opponents[team2[0].id][team1[1].id] += 1
+        elo_based_opponents[team2[1].id][team1[0].id] += 1
+        elo_based_opponents[team2[1].id][team1[1].id] += 1
+
+        for opponent in elo_based_opponents:
+            for idx in range(len(opponent)):
+                if opponent[idx] > 1:
+                    opponent[idx] = 0
+                    new_filtered_matchups = remove_matchups(new_filtered_matchups, game, True)
+
+    return new_filtered_matchups, elo_based_opponents
+
+def generate_elo_split_games(num_of_games, sorted_playing_players, previous_games):
+    num_players = len(sorted_playing_players)
+    game_matchups = []
+    player_order = []
+    elo_split_opponents = []
+    games_not_found = True
+    while games_not_found:
+        game_matchups = []
+        elo_split_opponents = []
+        player_order = []
+        for _ in range(0, num_of_games):
+            games_generated = []
+            if (num_players / 4) % 2 == 0:
+                elo_line = int(num_players / 2)
+            else:
+                elo_line = int(num_players / 2) - 2
+            high_elo = sorted_playing_players[:elo_line]
+            low_elo = sorted_playing_players[elo_line:]
+            random.shuffle(high_elo)
+            random.shuffle(low_elo)
+
+            for i in range(0, len(high_elo), 4):
+                player_order.extend([high_elo[i], high_elo[i+1], high_elo[i+2], high_elo[i+3]])
+                games_generated = games_generated + [[(high_elo[i].id, high_elo[i+1].id), (high_elo[i+2].id, high_elo[i+3].id)]]
+            for i in range(0, len(low_elo), 4):
+                player_order.extend([low_elo[i], low_elo[i+1], low_elo[i+2], low_elo[i+3]])
+                games_generated = games_generated + [[(low_elo[i].id, low_elo[i+1].id), (low_elo[i+2].id, low_elo[i+3].id)]]
+
+            game1 = [[(high_elo[0].id, high_elo[1].id), (high_elo[2].id, high_elo[3].id)]]
+            game2 = [[(high_elo[4].id, high_elo[5].id), (high_elo[6].id, high_elo[7].id)]]
+            game3 = [[(low_elo[0].id, low_elo[1].id), (low_elo[2].id, low_elo[3].id)]]
+            game4 = [[(low_elo[4].id, low_elo[5].id), (low_elo[6].id, low_elo[7].id)]]
+
+            game_matchups = game_matchups + games_generated
+
+            #player_order.extend(
+            #    [high_elo[0], high_elo[1], high_elo[2], high_elo[3], high_elo[4], high_elo[5], high_elo[6], high_elo[7],
+            #     low_elo[0], low_elo[1], low_elo[2], low_elo[3], low_elo[4], low_elo[5], low_elo[6], low_elo[7]])
+
+        games_not_found, elo_split_opponents = validate_elo_split_games(game_matchups, previous_games)
+    return game_matchups, player_order, elo_split_opponents
+
+
+def find_unique_matches(random_matches, num_matches):
+    while True:
+        random.shuffle(random_matches)
+        selected_matches = []
+        selected_players = []
+        used_players = set()
+
+        for match in random_matches:
+            players_in_match = set(match[0] + match[1])
+            if not players_in_match & used_players:
+                selected_matches.append(match)
+                selected_players.extend([match[0][0], match[0][1], match[1][0], match[1][1]])
+                used_players.update(players_in_match)
+                if len(selected_matches) == num_matches:
+                    return selected_matches, selected_players
+
+
+def valid_generated_matches_teammate_dif(generated_matches,  elo_dif):
+    valid_matches = []
+    for match in generated_matches:
+        team_elo1 = abs(match[0][0].elo - match[0][1].elo) / max(match[0][0].elo, match[0][1].elo)
+        team_elo2 = abs(match[1][0].elo - match[1][1].elo) / max(match[1][0].elo, match[1][1].elo)
+
+        if team_elo1 <= elo_dif and team_elo2 <= elo_dif:
+            valid_matches.append(match)
+
+    return valid_matches
+
+def valid_generated_matches(generated_matches,  elo_dif):
+    valid_matches = []
+    for match in generated_matches:
+        team_elo1 = (match[0][0].elo + match[0][1].elo) / 2
+        team_elo2 = (match[1][0].elo + match[1][1].elo) / 2
+
+        if abs(team_elo1 - team_elo2) / max(team_elo1, team_elo2) <= elo_dif:
+            valid_matches.append(match)
+
+    return valid_matches
+
+def replace_name(players_list, old_name, new_name):
+    for i, name in enumerate(players_list):
+        if name == old_name:
+            players_list[i] = new_name
+            break
+
+
+def create_game_csv(players_list, num_games, num_courts, filename="games.csv"):
+    # Determine the number of games
+    num_players_on_court = 4
+    num_players = int(len(players_list) / num_games)
+    # Open the CSV file for writing
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+        # Write the headers for each game
+        headers = []
+        for game_num in range(1, num_games + 1):
+            headers.extend([f"Game {game_num}", ""])
+        writer.writerow(headers)
+
+        for court_num in range(num_courts):
+            row_team_names = []
+            row_team_1 = []
+            row_team_2 = []
+
+            for game_num in range(num_games):
+                row_team_names.extend([f"Team {(court_num*2) + 1}", f"Team {(court_num*2) + 2}"])
+
+                replace_name(players_list, "Falcone", "Mike")
+                replace_name(players_list, "Baller", "Ballerini")
+                replace_name(players_list, "Steve", "Steven")
+
+                if game_num == 2:
+                    testing = 1
+
+                idx = (court_num * num_players_on_court) + (game_num * num_players)
+
+                row_1 = [players_list[0 + idx], players_list[2 + idx]]
+                row_2 = [players_list[1 + idx], players_list[3 + idx]]
+
+                row_team_1.extend(row_1)
+                row_team_2.extend(row_2)
+
+            writer.writerow(row_team_names)
+            writer.writerow(row_team_1)
+            writer.writerow(row_team_2)
+            writer.writerow(["", ""])  # Empty row for spacing
+
+
+def get_ranks(group_name):
+    group_id = database_fetch.get_group_id(group_name)
+    player_ids = database_fetch.fetch_players(group_id)
+    games = database_fetch.fetch_history(group_id)
+
+    players = {player_id: Player(player_id, player_name, level, sub, has_played) for player_id, player_name, level, sub, has_played in player_ids}
+    name_to_player = {player.name: player for player in players.values()}
+
+    play_games(games, players)
+
+    sorted_players = sorted(players.values(), key=lambda player: player.elo, reverse=True)
+    sorted_ft_players = sorted([player for player in players.values() if not player.sub], key=lambda x: x.elo, reverse=True)
+
+    print_ranks(sorted_ft_players)
+    print_ranks(sorted_players, False)
+    #print_team_win_losses_rate(sorted_ft_players)
+
+    return games, name_to_player, sorted_players  
+
+def generate_all_games(player_list, games, name_to_player, sorted_players, num_games, num_courts):
+
+    num_players = len(player_list)
+    num_matches = num_players / 4
+
+    sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
+    pairs = list(combinations(sorted_playing_players, 2))
+    matches = [(p1, p2) for p1 in pairs for p2 in pairs if not set(p1) & set(p2)]
+    last_weeks_games = games[-25:]
+    previous_games = get_previous_games(last_weeks_games, sorted_players)
+    filtered_matchup = remove_matchups(matches, [previous_games])
+
+    num_elo_split_games = 2
+    num_elo_based_games = 3
+    elo_dif = 0.1
+
+    elo_split_games, elo_split_players, opponents = generate_elo_split_games(num_elo_split_games, sorted_playing_players, previous_games)
+
+    game_players = [player.name for player in elo_split_players]
+
+    for i in range(1, num_elo_split_games + 1):
+        start_index = (i - 1) * num_players
+        end_index = i * num_players
+        current_game_players = elo_split_players[start_index:end_index]
+        print_game_schedule(f"Game {i}", current_game_players)
+
+    new_filtered_matchup = remove_matchups(filtered_matchup, elo_split_games)
+    new_filtered_matchup = valid_generated_matches(new_filtered_matchup, elo_dif)
+    #new_filtered_matchup = valid_generated_matches_teammate_dif(new_filtered_matchup, 0.2)
+
+    elo_based_players = []
+
+    for _ in range(1, num_elo_based_games + 1):
+        random.shuffle(new_filtered_matchup)
+        result_matches, result_players = find_unique_matches(new_filtered_matchup, num_matches)
+        game_players = game_players + [player.name for player in result_players]
+        result_ids = [[(team[0].id, team[1].id) for team in match] for match in result_matches]
+        new_filtered_matchup = remove_matchups(new_filtered_matchup, result_ids)
+        for matchup in result_matches:
+            for player in matchup:
+                elo_based_players.extend([player[0], player[1]])
+        new_filtered_matchup, opponents = validate_elo_based_games(result_matches, opponents, new_filtered_matchup)
+
+    for i in range(1, num_elo_based_games + 1):
+        start_index = (i - 1) * num_players
+        end_index = i * num_players
+        current_game_players = elo_based_players[start_index:end_index]
+        print_game_schedule(f"Game {i + num_elo_split_games}", current_game_players)
+
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
+
+def force_teams(player_list, name_to_player):
+    forced_team = []
+    player1 =  name_to_player["Anthony"]
+    player2 =  name_to_player["James"]
+
+    player3 =  name_to_player["Mario"]
+    player4 =  name_to_player["Felix"]
+
+    forced_team.append(Team(player1,player2, "TEAM"))
+    forced_team.append(Team(player3,player4, "TEAM"))
+
+    players_to_remove = [player1, player2, player3, player4]
+
+    for player in players_to_remove:
+        # Remove from name_to_player dictionary
+        name_to_player.pop(player.name, None)
+        
+        # Remove from player_list if it contains names
+        if player.name in player_list:
+            player_list.remove(player.name)
+
+    return forced_team
+
+def generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player, tolerance=0.05, max_retries=100000):
+    num_players = len(player_list)
+    num_teams = int(num_players / 2)
+    
+    
+
+    forced_teams = []
+    forced_teams = force_teams(player_list, name_to_player)
+
+    
+
+    for attempt in range(max_retries):
+        teams = []
+        used_players = set()
+
+        # Sort players by ELO in descending order
+        sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
+
+        top_player = sorted_playing_players[0]
+        bottom_player = sorted_playing_players[-1]
+
+        if (top_player.id, bottom_player.id) in previous_teams or (bottom_player.id, top_player.id) in previous_teams:
+            bottom_player = sorted_playing_players[-2]
+        if (top_player.id, bottom_player.id) in previous_teams or (bottom_player.id, top_player.id) in previous_teams:
+            bottom_player = sorted_playing_players[-3]
+
+        teams.append(Team(top_player, bottom_player, "TEAM"))
+        used_players.add(top_player)
+        used_players.add(bottom_player)
+        
+        # Remove top and bottom player from the list of available players
+        sorted_playing_players.remove(top_player)
+        sorted_playing_players.remove(bottom_player)
+
+        second_top_player = sorted_playing_players[0]
+        second_bottom_player = sorted_playing_players[-1]
+
+        if (second_top_player.id, second_bottom_player.id) in previous_teams or (second_bottom_player.id, second_top_player.id) in previous_teams:
+            second_bottom_player = sorted_playing_players[-2]
+        if (second_top_player.id, second_bottom_player.id) in previous_teams or (second_bottom_player.id, second_top_player.id) in previous_teams:
+            second_bottom_player = sorted_playing_players[-3]
+
+        teams.append(Team(second_top_player, second_bottom_player, "TEAM"))
+        used_players.add(second_top_player)
+        used_players.add(second_bottom_player)
+        
+        # Remove top and bottom player from the list of available players
+        sorted_playing_players.remove(second_top_player)
+        sorted_playing_players.remove(second_bottom_player)
+        
+        # Shuffle the combinations to try random attempts
+        possible_combinations = list(combinations(sorted_playing_players, 2))
+        random.shuffle(possible_combinations)
+        
+        for player1, player2 in possible_combinations:
+            if player1 in used_players or player2 in used_players:
+                continue  # Skip players already assigned to a team
+
+            # Calculate average ELO and check the 10% tolerance range
+            average_elo = (player1.elo + player2.elo) / 2
+            if abs(player1.elo - average_elo) <= tolerance * average_elo and abs(player2.elo - average_elo) <= tolerance * average_elo:
+                teams.append(Team(player1, player2, "TEAM"))
+                used_players.add(player1)
+                used_players.add(player2)
+
+            # Stop once we have enough teams
+            if len(teams) == num_teams - len(forced_teams):
+                break
+
+        # If we formed all the teams, return them
+        if len(teams) == num_teams - len(forced_teams):
+            unique_teams = True
+            for team in teams:
+                if (team.player1.id, team.player2.id) in previous_teams or (team.player2.id, team.player1.id) in previous_teams:
+                    unique_teams = False
+            if unique_teams:
+                random.shuffle(teams)  # Shuffle to ensure randomness
+                return teams + forced_teams
+        
+    # If after max_retries no valid teams were formed, raise an error or return a fallback option
+    raise ValueError(f"Could not form valid teams within {max_retries} attempts")
+    
+def generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4):
+    
+    last_weeks_games = games[-48:]
+    previous_teams = get_previous_games(last_weeks_games, sorted_players)
+    
+    teams = generate_teams_based_on_average_elo(player_list, previous_teams, name_to_player)
+
+    print_teams(teams)
+    random.shuffle(teams)
+    matchups = generate_random_matchups(teams, num_games)
+    print_matchups(matchups)
+    game_players = convert_matchups(matchups)
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
+
+def generate_random_teams(player_list, name_to_player, num_games, num_courts):
+    num_players = len(player_list)
+    num_teams = int(num_players / 2)
+    teams = [0 for _ in range(num_teams)]
+    player_order = []
+
+    sorted_playing_players = sorted([name_to_player[name] for name in player_list], key=lambda x: x.elo, reverse=True)
+    random.shuffle(sorted_playing_players)
+
+    j = 0
+    for i in range(0, num_teams):
+        teams[i] = Team(sorted_playing_players[j], sorted_playing_players[j+1], "Team" + str(i))
+        j=j+2
+
+    print_teams(teams)
+    random.shuffle(teams)
+    matchups = generate_random_matchups(teams, num_games)
+    print_matchups(matchups)
+    game_players = convert_matchups(matchups)
+    create_game_csv(game_players, num_games=num_games, num_courts=num_courts)
+
+def convert_matchups(matchups):
+    game_players = []
+    for i, match in enumerate(matchups):
+        for team1, team2 in match:
+            game_players = game_players + [team1.player1.name] + [team1.player2.name] + [team2.player1.name] + [team2.player2.name]
+
+    return game_players
+
+
+def generate_random_matchups(teams, n):
+    # Generate all possible matchups (team pairs)
+    all_matchups = list(combinations(teams, 2))
+    match_history = set()
+    rounds = []
+    
+    for _ in range(n):
+        round_matchups = []
+        available_teams = set(teams)
+        
+        for team1, team2 in all_matchups:
+            if team1 in available_teams and team2 in available_teams and (team1, team2) not in match_history and (team2, team1) not in match_history:
+                round_matchups.append((team1, team2))
+                match_history.add((team1, team2))
+                available_teams.remove(team1)
+                available_teams.remove(team2)
+            
+            if len(round_matchups) == 4:  # 4 matchups per round
+                break
+        
+        if len(round_matchups) != 4:
+            raise ValueError("Not enough matchups can be generated without repetition.")
+        
+        rounds.append(round_matchups)
+    
+    return rounds
+
+def print_matchups(rounds):
+    for i, round_matchups in enumerate(rounds):
+        court_number = 9
+        random.shuffle(round_matchups)
+        print(f"Game {i+1}:")
+        for team1, team2 in round_matchups:
+            print(f"Court {court_number:02}: {team1.player1.name} & {team1.player2.name} vs {team2.player1.name} & {team2.player2.name}")
+            court_number += 1
+        print()
+
+def print_teams(teams):
+    i = 1
+    for team in teams:
+        print(f"Team {i}: {team.player1.name} and {team.player2.name} - Average Rank: {round((team.player1.elo+team.player2.elo)/2,2)}")
+        i=i+1
+    print()
+
+def play(player_list, group_name="Monday Pickleball", generate_games=False):
+
+    games, name_to_player, sorted_players = get_ranks(group_name)
+    if generate_games : generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)

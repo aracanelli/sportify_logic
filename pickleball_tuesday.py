@@ -1,5 +1,5 @@
 import database_fetch
-from calculate_elo2 import Games, Player, Team
+from calculate_elo import Games, Player, Team
 from itertools import combinations
 import random
 import csv
@@ -602,53 +602,10 @@ def print_teams(teams):
         i=i+1
     print()
 
-if __name__ == "__main__":
-    
-    #games, name_to_player, sorted_players = get_ranks("Boyz Pickleball Season 2")
-    games, name_to_player, sorted_players = get_ranks("Monday Pickleball")
-    '''
-    player_list = [
-        "Sandra",
-        "Sam",
-        "Falcone",
-        "Baller",
-        "Anthony",
-        "Vick",
-        "Sarah",
-        "James C",
-        "Marco",
-        "Joe",
-        "Matt S",
-        "Cha-Nel",
-        "Szymbo",
-        "Steve",
-        "Erica",
-        "Jenna",
-        "Taurasi",
-        "Scarfo",
-        "James",
-        "Silvio"
-    ]
-    '''
-    player_list = [
-        "Frank",
-        "Dominic",
-        "Francis",
-        "Anthony",
-        "Panos",
-        "Mario",
-        "Marcello",
-        "Stephane",
-        "James",
-        "Felix",
-        "Nachiket",
-        "Naim",
-        "Steve",
-        "Martin",
-        "Tristan",
-        "Enzo"
+def play(player_list, group_name="Boyz Pickleball Season 2", generate_games=False):
 
-    ] 
-    #generate_random_teams(player_list, name_to_player, num_games=7, num_courts=4)
-    #generate_all_games(player_list, games, name_to_player, sorted_players, num_games=5, num_courts=5)
-    generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
+    games, name_to_player, sorted_players = get_ranks(group_name)
+    if generate_games : generate_all_games_same_team(player_list, games, name_to_player, sorted_players, num_games=7, num_courts=4)
+
+    
+    
